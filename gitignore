@@ -1,0 +1,17 @@
+# Downloaded Motus databases and generated outputs
+data/
+output/
+*.motus
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Python
+.venv/
+__pycache__/
+
+# Secrets
+.env
+*.secret
