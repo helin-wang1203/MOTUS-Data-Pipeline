@@ -51,7 +51,8 @@ Do not reimplement stages 1–4. Build on them.
 │   ├── clean_motus.R         # stages 4–6: download, clean, build handoff tables
 │   └── views/                # stage 7: one script per view
 │       ├── station_map.R     # regional receiver map → output/figures/
-│       └── flyby.R           # signal vs time per antenna for one visit
+│       ├── flyby.R           # signal vs time per antenna for one visit
+│       └── track_map.R       # one tag's stops in time order + all-tag overview
 ├── python/                   # station-side tools: raw-file parser, simulator (to build)
 ├── tests/
 │   └── test_cleaning.R       # synthetic-data tests for clean_motus.R
@@ -152,6 +153,7 @@ Rscript R/clean_motus.R        # download + clean + write handoff tables
 Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
 Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
 Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figures/flyby_*.png
+Rscript R/views/track_map.R    # one tag's track (png+html) + overview → output/figures/track_*
 ```
 
 Views read only `output/*.rds`. Each has its own configuration block at the top (for
@@ -172,10 +174,14 @@ around it downstream.
 ## Backlog, in priority order
 
 1. ~~Run the pipeline on project 176~~ Done 2026-11-05; no column mismatches.
-2. **Implausible legs.** On project 176, `legs$speed_kmh` ranges up to millions of km/h:
-   some tags are detected at far-apart stations minutes apart (likely false positives).
-   Decide a max plausible speed, add an `f_speed` flag to `legs` (needs a column change,
-   so agree on it first), and log how many legs it affects.
+2. **Overlapping stations fragment visits and legs.** On project 176, 64 of 115 legs
+   imply > 150 km/h. 49 of those are two station pairs ~6 km apart (FINWR/BULL,
+   Bennett Meadow/Shelburne) that both hear the same bird, alternating every few
+   seconds; `make_visits()` splits a visit at every station change, so one stopover
+   becomes dozens of visits and legs. Options, to decide together: (a) merge stations
+   within a set distance into one site for visits; (b) keep visits as they are and add
+   an `f_overlap`/`f_speed` flag to `legs`. Either touches handoff semantics, so agree
+   first. Relevant to the farm: Mount Ascutney is 36 km away, so no overlap expected.
 3. ~~Regional station map~~ Done 2026-11-05 (`R/views/station_map.R`). Open items: the
    farm coordinates are approximate (replace with the surveyed antenna position) and
    the 15 km radius is a placeholder until the range test.
@@ -183,8 +189,9 @@ around it downstream.
    run is one antenna by definition), one line per antenna, labelled by bearing or by
    port when the bearing is missing (63% of sample hits). Rerun on farm data to check
    the port-to-antenna map.
-5. **Track map** (`R/views/track_map.R`): one tag's visits in time order, colored by date,
-   points sized by stopover duration.
+5. ~~Track map~~ Done 2026-11-05 (`R/views/track_map.R`). Merges consecutive visits at
+   one station into a "stop" before plotting; static map has no basemap (would need a
+   new dependency such as `rnaturalearth`; the leaflet HTML has tiles).
 6. **Seasonal activity calendar**: date × hour-of-night heatmap of tags detected, by species.
 7. **Antenna health**: pulses per hour per antenna, flagging flat lines. Uses
    `antenna_activity`; likely empty in project downloads, so test against simulated data.
