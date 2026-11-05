@@ -62,7 +62,7 @@ Do not reimplement stages 1–4. Build on them.
 │   ├── test_cleaning.R       # synthetic-data tests for clean_motus.R
 │   └── test_antenna_health.R # simulated-fault tests for antenna_health.R
 ├── docs/
-│   └── interface.md          # interface control document (to write)
+│   └── interface.md          # interface control document (boundaries, units, port map, health)
 ├── data/                     # downloaded .motus files — gitignored
 └── output/                   # generated tables and figures — gitignored
 ```
@@ -218,8 +218,9 @@ around it downstream.
    view, simulator + tests). Flat-line detection is only meaningful on `pulseCounts`
    (receiver downloads) or simulated data; the view says so on the real-data figure.
    `antenna_activity` has no receiver column, so spells are found per batch.
-8. **Interface control document** (`docs/interface.md`): station file formats, units,
-   timing guarantees, port-to-antenna map, upload cadence, and health signals.
+8. ~~Interface control document~~ Draft 0.1 written 2026-11-05 (`docs/interface.md`).
+   Items marked VERIFY need the hardware team or the running station; the port-to-antenna
+   table is blank until installation. Keep it in sync with any handoff-table change.
 9. **Station-side tools** (`python/`): a parser for raw SensorGnome files and a simulator
    that writes files in the same format, for the health monitor and range-test analysis.
 10. **Public "this month at the farm" page**, last, once real farm data exists.
