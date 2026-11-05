@@ -57,7 +57,10 @@ Do not reimplement stages 1–4. Build on them.
 │       ├── track_map.R       # one tag's stops in time order + all-tag overview
 │       ├── activity_calendar.R  # date × hour heatmap of tags detected, by species
 │       └── antenna_health.R  # pulses/hour per antenna with flat/hot spells flagged
-├── python/                   # station-side tools: raw-file parser, simulator (to build)
+├── python/                   # station-side tools (stdlib only)
+│   ├── sg_files.py           # parse raw SensorGnome files → CSV incl. hourly pulse counts
+│   ├── sg_simulate.py        # write simulated station files with faults (LOCAL ONLY)
+│   └── tests/test_sg_files.py
 ├── tests/
 │   ├── test_cleaning.R       # synthetic-data tests for clean_motus.R
 │   └── test_antenna_health.R # simulated-fault tests for antenna_health.R
@@ -149,7 +152,8 @@ install.packages(c("motus", "motusData"),
 install.packages(c("dplyr", "lubridate", "arrow", "ggplot2", "sf", "leaflet", "htmlwidgets"))
 ```
 
-Python 3.11+ for anything in `python/` (none yet). Use a virtual environment in `.venv/`.
+Python 3.11+ for `python/`. Standard library only so far, so no virtual environment is
+needed; if a dependency is ever added, use `.venv/` (gitignored).
 
 **Motus login.** `R/clean_motus.R` reads `MOTUS_USER` and `MOTUS_PASSWORD` from the
 environment (the same names the `motus` package uses). For project 176 they default to
@@ -162,6 +166,9 @@ them in `.env` (gitignored) and export before running; never in the script.
 Rscript R/clean_motus.R        # download + clean + write handoff tables
 Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
 Rscript tests/test_antenna_health.R  # simulated-fault tests; must pass before committing
+python3 -m unittest discover -s python/tests  # station-file round-trip tests
+python3 python/sg_simulate.py --days 3 --dead-port 3 --dead-from-hour 48 --out output/simulated_station
+python3 python/sg_files.py output/simulated_station --out output/station  # → hourly.csv etc.
 Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
 Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figures/flyby_*.png
 Rscript R/views/track_map.R    # one tag's track (png+html) + overview → output/figures/track_*
@@ -183,6 +190,11 @@ case to this test. Tests must not need network access.
 which has a port that dies on day 10, a 4-hour noise burst on day 5, and a 6-hour
 receiver outage on day 7. It checks that exactly those are flagged, that the outage is
 not blamed on an antenna, and that a silent port is detectable after `FLAT_HOURS`.
+
+`python/tests/test_sg_files.py` simulates station files, parses them back, and checks
+file naming, boot counts across an outage, settings and GPS cadence, the hourly table
+shape, injected faults, and that bad lines are counted rather than fatal.
+`output/station/hourly.csv` from the parser can be fed straight to `antenna_health()`.
 
 `load_raw()` runs cleanly against project 176 with `motus` 6.1.2: every column in
 `WANTED_COLS` was present. If a future `motus` version renames columns, the script
@@ -221,8 +233,10 @@ around it downstream.
 8. ~~Interface control document~~ Draft 0.1 written 2026-11-05 (`docs/interface.md`).
    Items marked VERIFY need the hardware team or the running station; the port-to-antenna
    table is blank until installation. Keep it in sync with any handoff-table change.
-9. **Station-side tools** (`python/`): a parser for raw SensorGnome files and a simulator
-   that writes files in the same format, for the health monitor and range-test analysis.
+9. ~~Station-side tools~~ Done 2026-11-05 (`python/`). Parser + simulator + tests,
+   stdlib only. Line formats follow `docs/interface.md` §2.2 and still need checking
+   against a real file from the CTT image (the `T` and `C` line fields especially).
+   Range-test analysis itself is not written yet; the parser gives it `pulses.csv`.
 10. **Public "this month at the farm" page**, last, once real farm data exists.
 
 ## Success metrics for this repo

@@ -77,6 +77,10 @@ spacing of pulses within a burst and the interval between bursts (the burst
 interval, BI). The Motus server does that matching. The station's only job
 at boundary A is to record every pulse with an accurate timestamp.
 
+Reference implementation of these formats: `python/sg_files.py` (parser) and
+`python/sg_simulate.py` (writer). Both must be updated together with this
+section once a real file from the farm station has been inspected.
+
 ### 2.3 Where files live and how long
 
 **VERIFY** on the installed image: files accumulate on the station's storage
@@ -265,10 +269,10 @@ what the hardware team should expect to be asked about.
 | Signal | Source | Normal | Alert | Where implemented |
 |---|---|---|---|---|
 | Files arriving at motus.org | motus.org receiver page; `tagme()` batch count growing | New batch at least daily | None for > 48 h (**VERIFY** cadence) | Manual check for now |
-| GPS fix | `G` lines in raw files; receiver deployment position | A fix every few minutes | No fix for > 1 h | Not yet; needs raw-file parser (backlog 9) |
+| GPS fix | `G` lines in raw files; receiver deployment position | A fix every few minutes | No fix for > 1 h | `python/sg_files.py` writes `gps.csv`; alert rule not yet written |
 | Pulses per hour per 166 MHz port | `pulseCounts` → `antenna_activity` | Tens to thousands per hour, with a day/night pattern | `FLAT_HOURS` = 6 consecutive receiver-up hours at 0 pulses: silent port (cable, dongle, or antenna). `HOT_HOURS` = 3 hours above 10× the port's median: noise source | `R/antenna_health.R`, `R/views/antenna_health.R` |
 | Receiver up/down | Any port reporting in the hour | Every hour | A gap with no port reporting is receiver or power downtime, not an antenna fault, and is reported separately | `R/antenna_health.R` (`complete_hours()`) |
-| FUNcube tuning | `S` lines at boot | Each port shows `-m 166.376` (**VERIFY** parameter name) | Any other value | Not yet; needs raw-file parser |
+| FUNcube tuning | `S` lines at boot | Each port shows `-m 166.376` (**VERIFY** parameter name) | Any other value | `python/sg_files.py` writes `settings.csv`; alert rule not yet written |
 
 Thresholds are starting points set on 2026-11-05 against simulated data.
 Revisit after the first month of farm data, when the real quiet-hour pulse
