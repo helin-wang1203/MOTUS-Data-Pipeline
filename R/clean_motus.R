@@ -6,7 +6,7 @@
 #   detections        one row per filtered hit
 #   visits            one row per tag-at-a-station visit
 #   legs              one row per move between two stations by one tag
-#   stations          one row per receiver deployment
+#   stations          one row per receiver deployment (whole network if NETWORK_STATIONS)
 #   antenna_activity  one row per antenna per hour (if pulse counts exist)
 #   cleaning_log      rows removed by each rule (document this in the report)
 #
@@ -29,6 +29,8 @@ OUT_DIR          <- "output"     # where handoff tables are written
 MIN_RUN_LEN      <- 3            # runs this short or shorter are treated as noise
 VISIT_GAP_HOURS  <- 2            # gap that splits one visit into two at a station
 DROP_AMBIGUOUS   <- TRUE         # ambiguous hits go to a review file, not detections
+NETWORK_STATIONS <- TRUE         # add every Motus receiver deployment to `stations`,
+                                 # not just those in this project (for the regional map)
 
 # ---- Helpers ---------------------------------------------------------------
 
@@ -211,6 +213,14 @@ make_legs <- function(visits) {
 }
 
 make_stations <- function(sql) {
+  # metadata() pulls receiver deployments for the whole network into recvDeps,
+  # so the regional station map can show receivers near Hanover even though
+  # none of them are in the sample project. Fast (~2 s) and needs the login.
+  if (NETWORK_STATIONS && !USE_BUNDLED) {
+    tryCatch(suppressMessages(motus::metadata(sql)),
+             error = function(e) message("metadata() failed (", conditionMessage(e),
+                                         "); stations limited to this project."))
+  }
   rd <- dplyr::tbl(sql, "recvDeps") %>% collect()
   rd %>%
     transmute(recvDeployID = deployID,

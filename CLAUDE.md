@@ -49,7 +49,8 @@ Do not reimplement stages 1–4. Build on them.
 ├── README.md                 # human-facing overview (keep short)
 ├── R/
 │   ├── clean_motus.R         # stages 4–6: download, clean, build handoff tables
-│   └── views/                # stage 7: one script per view (to build)
+│   └── views/                # stage 7: one script per view
+│       └── station_map.R     # regional receiver map → output/figures/
 ├── python/                   # station-side tools: raw-file parser, simulator (to build)
 ├── tests/
 │   └── test_cleaning.R       # synthetic-data tests for clean_motus.R
@@ -74,6 +75,11 @@ and `docs/interface.md`.
 | `visits` | Tag at a station | `motusTagID`, `visitID`, `species`, `station`, `lat`, `lon`, `t_start`, `t_end`, `n_hits`, `max_sig`, `best_bearing`, `duration_h` |
 | `legs` | Move between two different stations | `motusTagID`, `species`, `from`, `to`, `depart`, `arrive`, `distance_km`, `hours`, `speed_kmh` |
 | `stations` | Receiver deployment | `recvDeployID`, `station`, `lat`, `lon`, `active_from`, `active_to` |
+
+`stations` covers the whole Motus network when `NETWORK_STATIONS = TRUE` (the default),
+via `motus::metadata()`; the sample login returns ~2,100 deployments, which may not be
+the complete network. `active_to = NA` means the deployment was never closed on
+motus.org, which is the best available signal that a station is still running.
 | `antenna_activity` | Antenna per hour | `batchID`, `port`, `hour`, `n_pulses` |
 
 Also written: `cleaning_log` (rows removed by each rule) and `ambiguous_for_review`.
@@ -128,7 +134,7 @@ installing it; the bundled source build fails to link). Then install once:
 install.packages(c("motus", "motusData"),
   repos = c(birdscanada = "https://birdscanada.r-universe.dev",
             CRAN = "https://cloud.r-project.org"))
-install.packages(c("dplyr", "lubridate", "arrow", "ggplot2", "sf", "leaflet"))
+install.packages(c("dplyr", "lubridate", "arrow", "ggplot2", "sf", "leaflet", "htmlwidgets"))
 ```
 
 Python 3.11+ for anything in `python/` (none yet). Use a virtual environment in `.venv/`.
@@ -143,7 +149,11 @@ them in `.env` (gitignored) and export before running; never in the script.
 ```sh
 Rscript R/clean_motus.R        # download + clean + write handoff tables
 Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
+Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
 ```
+
+Views read only `output/*.rds`. Each has its own configuration block at the top (for
+the station map: farm coordinates, region radius, estimated detection radius).
 
 ## Testing
 
@@ -164,8 +174,9 @@ around it downstream.
    some tags are detected at far-apart stations minutes apart (likely false positives).
    Decide a max plausible speed, add an `f_speed` flag to `legs` (needs a column change,
    so agree on it first), and log how many legs it affects.
-3. **Regional station map** (`R/views/station_map.R`): active receivers near Hanover with
-   detection-radius circles and the farm site marked. Label the radius as an estimate.
+3. ~~Regional station map~~ Done 2026-11-05 (`R/views/station_map.R`). Open items: the
+   farm coordinates are approximate (replace with the surveyed antenna position) and
+   the 15 km radius is a placeholder until the range test.
 4. **Flyby plot** (`R/views/flyby.R`): signal strength vs. time for one run, one line per
    antenna bearing. This is also the visual check that port-to-antenna mapping is right.
 5. **Track map** (`R/views/track_map.R`): one tag's visits in time order, colored by date,
