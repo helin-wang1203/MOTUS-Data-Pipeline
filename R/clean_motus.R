@@ -69,7 +69,17 @@ load_raw <- function() {
     dir.create(DATA_DIR, showWarnings = FALSE)
     db_file <- file.path(DATA_DIR, paste0(
       if (is.numeric(PROJ_RECV)) "project-" else "", PROJ_RECV, ".motus"))
-    # Sample project 176: username and password are both "motus.sample".
+    # Credentials come from the environment so nothing private is in the repo.
+    # Sample project 176 uses the public login "motus.sample" (both fields);
+    # it is the default so the sample run works with no setup. For the farm
+    # receiver, set MOTUS_USER and MOTUS_PASSWORD in .env or the shell.
+    is_sample <- identical(PROJ_RECV, 176)
+    # Same env-var names the motus package itself uses (local_auth()).
+    set_var <- get("sessionVariable", envir = asNamespace("motus"))
+    set_var(name = "userLogin",
+            val = Sys.getenv("MOTUS_USER",     if (is_sample) "motus.sample" else ""))
+    set_var(name = "userPassword",
+            val = Sys.getenv("MOTUS_PASSWORD", if (is_sample) "motus.sample" else ""))
     sql <- motus::tagme(PROJ_RECV, new = !file.exists(db_file),
                         update = TRUE, dir = DATA_DIR)
   }

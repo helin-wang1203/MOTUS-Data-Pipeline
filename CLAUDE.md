@@ -87,6 +87,8 @@ The farm station registers with Motus around January 10, 2027. Until then, devel
 
 - **Motus sample project 176.** `tagme(176, new = TRUE)`; username and password are both
   `motus.sample`. Offline copy: `motus::tagmeSample()` (set `USE_BUNDLED <- TRUE`).
+  First download takes several minutes and yields ~109k raw hits (2014–2015 shorebird
+  data from James Bay / Atlantic coast), 15 tags after cleaning.
 - **`motusData` package.** A pre-filtered flat file of the sample data.
 - **Rusty Blackbird dataset on Dryad.** Cleaned runs, flights, and stopovers, including
   New England deployments. Good for track and stopover views.
@@ -117,7 +119,10 @@ Sample data is not from the Upper Valley. Never present it as what the farm dete
 
 ## Environment setup
 
-R 4.3 or newer. Install once:
+R 4.3 or newer. On macOS, `brew install r udunits gdal geos proj apache-arrow` first:
+`motus` depends on `sf`, which needs those system libraries, and the `arrow` R package
+only links cleanly against the Homebrew Arrow (set `ARROW_USE_PKG_CONFIG=true` when
+installing it; the bundled source build fails to link). Then install once:
 
 ```r
 install.packages(c("motus", "motusData"),
@@ -127,6 +132,11 @@ install.packages(c("dplyr", "lubridate", "arrow", "ggplot2", "sf", "leaflet"))
 ```
 
 Python 3.11+ for anything in `python/` (none yet). Use a virtual environment in `.venv/`.
+
+**Motus login.** `R/clean_motus.R` reads `MOTUS_USER` and `MOTUS_PASSWORD` from the
+environment (the same names the `motus` package uses). For project 176 they default to
+the public sample login, so the sample run needs no setup. For the farm receiver, put
+them in `.env` (gitignored) and export before running; never in the script.
 
 ## Commands
 
@@ -142,28 +152,32 @@ checks the exact outcome: rows removed per rule, visits split by gap, legs only 
 different stations, and leg distance. When you add a rule or change table logic, add a
 case to this test. Tests must not need network access.
 
-The download step (`load_raw()`) has only been run against synthetic data so far. On
-first real run, it prints any expected `alltags` columns it did not find. Column names
-can change between `motus` package versions. Fix the mapping in `WANTED_COLS`; don't
-work around it downstream.
+`load_raw()` runs cleanly against project 176 with `motus` 6.1.2: every column in
+`WANTED_COLS` was present. If a future `motus` version renames columns, the script
+prints the missing ones at load time. Fix the mapping in `WANTED_COLS`; don't work
+around it downstream.
 
 ## Backlog, in priority order
 
-1. **Run the pipeline on project 176** and fix any column-name mismatches.
-2. **Regional station map** (`R/views/station_map.R`): active receivers near Hanover with
+1. ~~Run the pipeline on project 176~~ Done 2026-11-05; no column mismatches.
+2. **Implausible legs.** On project 176, `legs$speed_kmh` ranges up to millions of km/h:
+   some tags are detected at far-apart stations minutes apart (likely false positives).
+   Decide a max plausible speed, add an `f_speed` flag to `legs` (needs a column change,
+   so agree on it first), and log how many legs it affects.
+3. **Regional station map** (`R/views/station_map.R`): active receivers near Hanover with
    detection-radius circles and the farm site marked. Label the radius as an estimate.
-3. **Flyby plot** (`R/views/flyby.R`): signal strength vs. time for one run, one line per
+4. **Flyby plot** (`R/views/flyby.R`): signal strength vs. time for one run, one line per
    antenna bearing. This is also the visual check that port-to-antenna mapping is right.
-4. **Track map** (`R/views/track_map.R`): one tag's visits in time order, colored by date,
+5. **Track map** (`R/views/track_map.R`): one tag's visits in time order, colored by date,
    points sized by stopover duration.
-5. **Seasonal activity calendar**: date × hour-of-night heatmap of tags detected, by species.
-6. **Antenna health**: pulses per hour per antenna, flagging flat lines. Uses
+6. **Seasonal activity calendar**: date × hour-of-night heatmap of tags detected, by species.
+7. **Antenna health**: pulses per hour per antenna, flagging flat lines. Uses
    `antenna_activity`; likely empty in project downloads, so test against simulated data.
-7. **Interface control document** (`docs/interface.md`): station file formats, units,
+8. **Interface control document** (`docs/interface.md`): station file formats, units,
    timing guarantees, port-to-antenna map, upload cadence, and health signals.
-8. **Station-side tools** (`python/`): a parser for raw SensorGnome files and a simulator
+9. **Station-side tools** (`python/`): a parser for raw SensorGnome files and a simulator
    that writes files in the same format, for the health monitor and range-test analysis.
-9. **Public "this month at the farm" page**, last, once real farm data exists.
+10. **Public "this month at the farm" page**, last, once real farm data exists.
 
 ## Success metrics for this repo
 
