@@ -231,13 +231,27 @@ make_stations <- function(sql) {
     distinct()
 }
 
+# Receiver downloads carry a complete pulseCounts table (every antenna-hour).
+# Project downloads carry only `activity`, which has pulse counts for the
+# hours in which tags were detected, so there an absent hour is not evidence
+# of a silent antenna. Prefer pulseCounts; fall back to activity.
 make_antenna_activity <- function(sql) {
-  if (!"pulseCounts" %in% DBI::dbListTables(sql)) return(NULL)
-  pc <- dplyr::tbl(sql, "pulseCounts") %>% collect()
-  if (!nrow(pc)) return(NULL)
-  pc %>% transmute(batchID, port = ant,
-                   hour = as_datetime(hourBin * 3600, tz = "UTC"),
-                   n_pulses = numPulses)
+  tabs <- DBI::dbListTables(sql)
+  if ("pulseCounts" %in% tabs &&
+      nrow(pc <- dplyr::tbl(sql, "pulseCounts") %>% collect())) {
+    message("  antenna_activity from pulseCounts (complete antenna-hours)")
+    return(pc %>% transmute(batchID, port = ant,
+                            hour = as_datetime(hourBin * 3600, tz = "UTC"),
+                            n_pulses = numPulses))
+  }
+  if ("activity" %in% tabs &&
+      nrow(ac <- dplyr::tbl(sql, "activity") %>% collect())) {
+    message("  antenna_activity from activity (only hours with detections)")
+    return(ac %>% transmute(batchID, port = ant,
+                            hour = as_datetime(hourBin * 3600, tz = "UTC"),
+                            n_pulses = pulseCount))
+  }
+  NULL
 }
 
 # ---- Step 4: write ---------------------------------------------------------

@@ -49,14 +49,18 @@ Do not reimplement stages 1–4. Build on them.
 ├── README.md                 # human-facing overview (keep short)
 ├── R/
 │   ├── clean_motus.R         # stages 4–6: download, clean, build handoff tables
+│   ├── antenna_health.R      # health rules + thresholds (no side effects)
+│   ├── simulate_antenna_activity.R  # synthetic antenna_activity with known faults (local only)
 │   └── views/                # stage 7: one script per view
 │       ├── station_map.R     # regional receiver map → output/figures/
 │       ├── flyby.R           # signal vs time per antenna for one visit
 │       ├── track_map.R       # one tag's stops in time order + all-tag overview
-│       └── activity_calendar.R  # date × hour heatmap of tags detected, by species
+│       ├── activity_calendar.R  # date × hour heatmap of tags detected, by species
+│       └── antenna_health.R  # pulses/hour per antenna with flat/hot spells flagged
 ├── python/                   # station-side tools: raw-file parser, simulator (to build)
 ├── tests/
-│   └── test_cleaning.R       # synthetic-data tests for clean_motus.R
+│   ├── test_cleaning.R       # synthetic-data tests for clean_motus.R
+│   └── test_antenna_health.R # simulated-fault tests for antenna_health.R
 ├── docs/
 │   └── interface.md          # interface control document (to write)
 ├── data/                     # downloaded .motus files — gitignored
@@ -84,6 +88,10 @@ via `motus::metadata()`; the sample login returns ~2,100 deployments, which may 
 the complete network. `active_to = NA` means the deployment was never closed on
 motus.org, which is the best available signal that a station is still running.
 | `antenna_activity` | Antenna per hour | `batchID`, `port`, `hour`, `n_pulses` |
+
+`antenna_activity` comes from `pulseCounts` (receiver downloads: every antenna-hour) or,
+failing that, from `activity` (project downloads: only hours with tag detections, so an
+absent hour is not a silent antenna). The pipeline prints which one it used.
 
 Also written: `cleaning_log` (rows removed by each rule) and `ambiguous_for_review`.
 
@@ -115,8 +123,9 @@ Sample data is not from the Upper Valley. Never present it as what the farm dete
    other projects' restricted detections.
 4. **All times are UTC.** Convert to local time only at display, and label it.
 5. **Cleaning thresholds are documented decisions, not defaults.** They live in the
-   configuration block of `R/clean_motus.R` (`MIN_RUN_LEN = 3`, `VISIT_GAP_HOURS = 2`). If
-   you change one, update this file and say why in the commit message.
+   configuration block of `R/clean_motus.R` (`MIN_RUN_LEN = 3`, `VISIT_GAP_HOURS = 2`) and
+   the top of `R/antenna_health.R` (`FLAT_HOURS = 6`, `FLAT_MAX = 0`, `HOT_MULT = 10`,
+   `HOT_HOURS = 3`). If you change one, update this file and say why in the commit message.
 6. **Flag, don't silently drop.** New cleaning rules add an `f_` flag column and a row in
    the cleaning log, following the pattern in `clean_detections()`.
 7. **Ambiguous detections are never discarded.** They go to `ambiguous_for_review`.
@@ -152,10 +161,12 @@ them in `.env` (gitignored) and export before running; never in the script.
 ```sh
 Rscript R/clean_motus.R        # download + clean + write handoff tables
 Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
+Rscript tests/test_antenna_health.R  # simulated-fault tests; must pass before committing
 Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
 Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figures/flyby_*.png
 Rscript R/views/track_map.R    # one tag's track (png+html) + overview → output/figures/track_*
 Rscript R/views/activity_calendar.R  # date × hour heatmap + daily totals → output/figures/activity_*
+Rscript R/views/antenna_health.R     # pulses/hour per antenna, real + simulated → output/figures/antenna_health*
 ```
 
 Views read only `output/*.rds`. Each has its own configuration block at the top (for
@@ -167,6 +178,11 @@ the station map: farm coordinates, region radius, estimated detection radius).
 checks the exact outcome: rows removed per rule, visits split by gap, legs only between
 different stations, and leg distance. When you add a rule or change table logic, add a
 case to this test. Tests must not need network access.
+
+`tests/test_antenna_health.R` runs the health rules on `simulate_antenna_activity()`,
+which has a port that dies on day 10, a 4-hour noise burst on day 5, and a 6-hour
+receiver outage on day 7. It checks that exactly those are flagged, that the outage is
+not blamed on an antenna, and that a silent port is detectable after `FLAT_HOURS`.
 
 `load_raw()` runs cleanly against project 176 with `motus` 6.1.2: every column in
 `WANTED_COLS` was present. If a future `motus` version renames columns, the script
@@ -198,8 +214,10 @@ around it downstream.
    axis is local time (`DISPLAY_TZ`, labelled), running noon→noon so a night is one
    block. "Hour of night" relative to sunset would need sunrise/sunset times (the
    `suncalc` package is already installed as a motus dependency) — add if wanted.
-7. **Antenna health**: pulses per hour per antenna, flagging flat lines. Uses
-   `antenna_activity`; likely empty in project downloads, so test against simulated data.
+7. ~~Antenna health~~ Done 2026-11-05 (`R/antenna_health.R` rules, `R/views/antenna_health.R`
+   view, simulator + tests). Flat-line detection is only meaningful on `pulseCounts`
+   (receiver downloads) or simulated data; the view says so on the real-data figure.
+   `antenna_activity` has no receiver column, so spells are found per batch.
 8. **Interface control document** (`docs/interface.md`): station file formats, units,
    timing guarantees, port-to-antenna map, upload cadence, and health signals.
 9. **Station-side tools** (`python/`): a parser for raw SensorGnome files and a simulator
@@ -209,7 +227,8 @@ around it downstream.
 ## Success metrics for this repo
 
 - All views render unchanged when `PROJ_RECV` is switched from 176 to the farm receiver.
-- The health monitor flags a silent antenna port within a set number of hours (to be set).
+- The health monitor flags a silent antenna port within `FLAT_HOURS` = 6 hours (set
+  2026-11-05 as a starting point; revisit once we know the farm's quiet-hour pulse floor).
 - Every cleaning decision is visible as a number in `cleaning_log`.
 
 ## Glossary
