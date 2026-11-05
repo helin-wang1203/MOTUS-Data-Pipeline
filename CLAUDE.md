@@ -50,7 +50,8 @@ Do not reimplement stages 1–4. Build on them.
 ├── R/
 │   ├── clean_motus.R         # stages 4–6: download, clean, build handoff tables
 │   └── views/                # stage 7: one script per view
-│       └── station_map.R     # regional receiver map → output/figures/
+│       ├── station_map.R     # regional receiver map → output/figures/
+│       └── flyby.R           # signal vs time per antenna for one visit
 ├── python/                   # station-side tools: raw-file parser, simulator (to build)
 ├── tests/
 │   └── test_cleaning.R       # synthetic-data tests for clean_motus.R
@@ -150,6 +151,7 @@ them in `.env` (gitignored) and export before running; never in the script.
 Rscript R/clean_motus.R        # download + clean + write handoff tables
 Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
 Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
+Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figures/flyby_*.png
 ```
 
 Views read only `output/*.rds`. Each has its own configuration block at the top (for
@@ -177,8 +179,10 @@ around it downstream.
 3. ~~Regional station map~~ Done 2026-11-05 (`R/views/station_map.R`). Open items: the
    farm coordinates are approximate (replace with the surveyed antenna position) and
    the 15 km radius is a placeholder until the range test.
-4. **Flyby plot** (`R/views/flyby.R`): signal strength vs. time for one run, one line per
-   antenna bearing. This is also the visual check that port-to-antenna mapping is right.
+4. ~~Flyby plot~~ Done 2026-11-05 (`R/views/flyby.R`). Plots a visit (not a run, since a
+   run is one antenna by definition), one line per antenna, labelled by bearing or by
+   port when the bearing is missing (63% of sample hits). Rerun on farm data to check
+   the port-to-antenna map.
 5. **Track map** (`R/views/track_map.R`): one tag's visits in time order, colored by date,
    points sized by stopover duration.
 6. **Seasonal activity calendar**: date × hour-of-night heatmap of tags detected, by species.
