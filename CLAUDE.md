@@ -52,7 +52,8 @@ Do not reimplement stages 1–4. Build on them.
 │   └── views/                # stage 7: one script per view
 │       ├── station_map.R     # regional receiver map → output/figures/
 │       ├── flyby.R           # signal vs time per antenna for one visit
-│       └── track_map.R       # one tag's stops in time order + all-tag overview
+│       ├── track_map.R       # one tag's stops in time order + all-tag overview
+│       └── activity_calendar.R  # date × hour heatmap of tags detected, by species
 ├── python/                   # station-side tools: raw-file parser, simulator (to build)
 ├── tests/
 │   └── test_cleaning.R       # synthetic-data tests for clean_motus.R
@@ -154,6 +155,7 @@ Rscript tests/test_cleaning.R  # synthetic tests; must pass before committing
 Rscript R/views/station_map.R  # regional map → output/figures/station_map.{png,html}
 Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figures/flyby_*.png
 Rscript R/views/track_map.R    # one tag's track (png+html) + overview → output/figures/track_*
+Rscript R/views/activity_calendar.R  # date × hour heatmap + daily totals → output/figures/activity_*
 ```
 
 Views read only `output/*.rds`. Each has its own configuration block at the top (for
@@ -192,7 +194,10 @@ around it downstream.
 5. ~~Track map~~ Done 2026-11-05 (`R/views/track_map.R`). Merges consecutive visits at
    one station into a "stop" before plotting; static map has no basemap (would need a
    new dependency such as `rnaturalearth`; the leaflet HTML has tiles).
-6. **Seasonal activity calendar**: date × hour-of-night heatmap of tags detected, by species.
+6. ~~Seasonal activity calendar~~ Done 2026-11-05 (`R/views/activity_calendar.R`). Hour
+   axis is local time (`DISPLAY_TZ`, labelled), running noon→noon so a night is one
+   block. "Hour of night" relative to sunset would need sunrise/sunset times (the
+   `suncalc` package is already installed as a motus dependency) — add if wanted.
 7. **Antenna health**: pulses per hour per antenna, flagging flat lines. Uses
    `antenna_activity`; likely empty in project downloads, so test against simulated data.
 8. **Interface control document** (`docs/interface.md`): station file formats, units,
