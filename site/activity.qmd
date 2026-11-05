@@ -1,0 +1,16 @@
+---
+title: "Seasonal activity"
+---
+
+{{< include _sample_warning.qmd >}}
+
+When are tagged birds detected? Each cell is one hour of one day; the colour is how
+many distinct tags were heard. Rows run **noon to noon** so that a night is one block,
+because most migrants fly at night. Times are local to the farm (America/New_York) and
+labelled as such; everything is stored in UTC.
+
+![](figures/activity_calendar.png)
+
+## Tags per day
+
+![](figures/activity_daily.png)

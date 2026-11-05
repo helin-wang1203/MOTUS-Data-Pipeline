@@ -1,0 +1,5 @@
+::: {.callout-warning title="Sample data, not the farm"}
+Everything on this page comes from **Motus sample project 176** (shorebirds tagged
+in James Bay and the Atlantic coast, 2015–2016). The Dartmouth Organic Farm station
+registers with Motus in January 2027. Nothing here is a detection at the farm.
+:::

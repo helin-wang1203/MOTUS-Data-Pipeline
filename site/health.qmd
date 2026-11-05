@@ -1,0 +1,39 @@
+---
+title: "Station health"
+---
+
+```{r}
+source("_setup.R")
+sp <- read_fig_csv("antenna_health_simulated_spells.csv")
+```
+
+Pulses per hour on each antenna port, every hour the receiver was up. Two rules run
+over this:
+
+- **Flat**: a port at zero pulses for 6 consecutive receiver-up hours. A silent port
+  means a cable, dongle or antenna problem.
+- **Hot**: a port above ten times its own median for 3 hours. A noise source.
+
+Hours in which no port reported at all are receiver or power downtime and are reported
+separately, not blamed on an antenna.
+
+## What a fault looks like
+
+This is a **simulated** receiver with three injected faults: port 3 dies on day 10,
+port 2 has a noise burst on day 5, and the whole receiver is off for six hours on day 7.
+The monitor flags exactly the first two. Simulated data is never uploaded to Motus.
+
+![](figures/antenna_health_simulated.png)
+
+```{r}
+sp %>% transmute(Port = port, Type = type, Start = start, End = end, Hours = hours) %>% kable()
+```
+
+## Real data, with a caveat
+
+Project downloads from Motus only carry pulse counts for hours in which a tag was
+detected, so a missing hour is not evidence of a silent antenna. The flat flags on
+this figure are therefore **not** faults. Reliable monitoring starts once the farm
+receiver is registered and its own download includes every antenna-hour.
+
+![](figures/antenna_health.png)

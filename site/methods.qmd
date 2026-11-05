@@ -1,0 +1,52 @@
+---
+title: "Methods"
+---
+
+```{r}
+source("_setup.R")
+log <- read_fig_csv("cleaning_log.csv")
+```
+
+## Data flow
+
+1. The receiver records every pulse it hears into hourly files and uploads them to motus.org.
+2. Motus matches bursts to registered tags and produces hits and runs.
+3. The `motus` R package downloads them into a local database.
+4. This project's pipeline cleans the detections and writes a small set of handoff tables.
+5. Every figure on this site reads only those tables.
+
+Stages 1–3 are the existing Motus system. Stages 4–5 are this project.
+
+## Cleaning
+
+Every rule flags rows rather than deleting them, so this table says exactly how many
+detections each decision removed. Ambiguous detections, where a burst matched more than
+one registered tag, are set aside for review rather than discarded.
+
+```{r}
+log %>% transmute(Rule = rule, Removed = ifelse(is.na(removed), "", format(removed, big.mark = ",")),
+                  Remaining = format(remaining, big.mark = ",")) %>% kable(align = "lrr")
+```
+
+Thresholds are documented decisions: a run of 3 hits or fewer is treated as noise, and a
+gap of more than 2 hours splits a visit. Antenna health uses 6 hours for a flat line and
+3 hours for a noise burst.
+
+## Known limitations
+
+- Two stations within range of each other can both hear the same bird, which splits one
+  stopover into many short visits and produces implausible "legs" between them. In the
+  sample data this affects 64 of 115 legs. A fix is pending a decision on how to merge
+  overlapping stations.
+- Antenna bearings are missing for 63% of sample detections because they were never
+  entered on motus.org. The farm's deployment record will carry them.
+- The static maps have no basemap. The interactive versions do.
+
+## Code and documents
+
+The pipeline, the view scripts, the interface control document and the tests are in the
+project repository. The interface document fixes units, time zones, file formats and
+the port-to-antenna map for the hardware team.
+
+This is coursework. Generative AI tools were used in writing the code, under the
+course's disclosure policy; every line was reviewed by the author.

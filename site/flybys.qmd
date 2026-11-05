@@ -1,0 +1,26 @@
+---
+title: "Flybys"
+---
+
+```{r}
+source("_setup.R")
+cands <- read_fig_csv("flyby_candidates.csv")
+```
+
+{{< include _sample_warning.qmd >}}
+
+A flyby is a bird passing a station: signal strength rises and falls on each antenna
+in turn. One line per antenna, labelled by the antenna's compass bearing, or by port
+number when the bearing was never entered on motus.org.
+
+**Why it matters for the farm.** The order in which antennas peak is the order the
+bird passed their bearings. After installation this plot is the check that the
+port-to-antenna map in the interface document is right: if peaks come in the wrong
+order, a cable is on the wrong port.
+
+![](figures/flyby_grid.png)
+
+```{r}
+#| output: asis
+cat(sprintf("%d candidate flybys in the sample data (visits under 90 minutes, heard on at least two antennas, at least 20 hits).", nrow(cands)))
+```

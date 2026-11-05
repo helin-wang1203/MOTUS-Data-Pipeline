@@ -18,7 +18,8 @@ source("R/clean_motus.R")   # for OUT_DIR, haversine_km()
 
 # ---- Configuration ---------------------------------------------------------
 
-TAG_ID   <- NULL                      # e.g. 16039; NULL = auto
+TAG_ID   <- NULL                      # e.g. 16039; NULL = auto (the tag seen at most stations)
+ALL_TAGS <- TRUE                      # also write a PNG + HTML for every multi-station tag (for the site)
 FIG_DIR  <- file.path(OUT_DIR, "figures")
 MIN_STATIONS_OVERVIEW <- 2            # tags with fewer stations are skipped in the overview
 
@@ -47,14 +48,18 @@ tag_summary <- stops %>% group_by(motusTagID, species) %>%
   arrange(desc(n_stations), desc(track_km))
 
 if (is.null(TAG_ID)) TAG_ID <- tag_summary$motusTagID[1]
-tag <- stops %>% filter(motusTagID == TAG_ID)
-if (!nrow(tag)) stop("Tag ", TAG_ID, " not in visits.")
-ts  <- tag_summary %>% filter(motusTagID == TAG_ID)
+if (!TAG_ID %in% stops$motusTagID) stop("Tag ", TAG_ID, " not in visits.")
 
 dir.create(FIG_DIR, showWarnings = FALSE, recursive = TRUE)
 write.csv(stops, file.path(FIG_DIR, "track_stops.csv"), row.names = FALSE)
+write.csv(tag_summary %>% mutate(track_km = round(track_km)),
+          file.path(FIG_DIR, "track_tags.csv"), row.names = FALSE)
 
-# ---- Static map for one tag -----------------------------------------------
+# ---- Maps for one tag (static + interactive) --------------------------------
+
+render_tag <- function(TAG_ID) {
+tag <- stops %>% filter(motusTagID == TAG_ID)
+ts  <- tag_summary %>% filter(motusTagID == TAG_ID)
 
 title <- sprintf("Tag %d (%s): %d stops at %d stations\n%s to %s, ~%.0f km along the track",
                  TAG_ID, ts$species, ts$n_stops, ts$n_stations,
@@ -100,6 +105,16 @@ if (requireNamespace("leaflet", quietly = TRUE) && requireNamespace("htmlwidgets
     leaflet::addControl(html = paste0("<small>", gsub("\n", " ", caption), "</small>"), position = "bottomleft")
   htmlwidgets::saveWidget(m, normalizePath(html_file, mustWork = FALSE),
                           selfcontained = nzchar(Sys.which("pandoc")), title = gsub("\n", " ", title))
+}
+invisible(list(png = single_file, html = if (file.exists(html_file)) html_file else NA, tag = tag))
+}
+
+chosen <- render_tag(TAG_ID)
+single_file <- chosen$png; html_file <- chosen$html; tag <- chosen$tag
+if (ALL_TAGS) {
+  others <- setdiff(tag_summary$motusTagID[tag_summary$n_stations >= MIN_STATIONS_OVERVIEW], TAG_ID)
+  for (id in others) render_tag(id)
+  cat(sprintf("Rendered maps for %d tags.\n", length(others) + 1))
 }
 
 # ---- Overview: every multi-station tag ------------------------------------

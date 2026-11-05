@@ -1,0 +1,40 @@
+---
+title: "Dartmouth Organic Farm Motus Station"
+subtitle: "Tracking migratory birds, bats and insects from the Upper Valley"
+---
+
+```{r}
+source("_setup.R")
+log <- read_fig_csv("cleaning_log.csv")
+tags <- read_fig_csv("track_tags.csv")
+sites <- read_fig_csv("station_map_data.csv")
+```
+
+{{< include _sample_warning.qmd >}}
+
+## What this is
+
+[Motus](https://motus.org) is a network of radio receivers that listen for tiny
+transmitters carried by migratory animals. An ENGS 89/190 capstone team is installing
+a receiver at the Dartmouth Organic Farm, with three directional antennas and one omni
+on 166 MHz plus the 434 MHz CTT band. Every detection goes to motus.org, where it is
+matched to a registered tag and shared with the researchers who tagged the animal.
+
+This site shows what the data side of the station produces: cleaned detections,
+visits and movements, and the station's own health.
+
+## At a glance
+
+```{r}
+#| output: asis
+cat(sprintf(
+  "- **%s** detections kept after cleaning, from **%s** raw hits\n- **%d** tags, **%d** of them seen at more than one station\n- **%d** receiver sites within 150 km of the farm, **%d** currently active\n",
+  format(tail(log$remaining, 1), big.mark = ","), format(log$remaining[1], big.mark = ","),
+  nrow(tags), sum(tags$n_stations > 1), nrow(sites), sum(sites$active == "TRUE" | sites$active == TRUE)))
+```
+
+## Where the farm sits in the network
+
+![](figures/station_map.png){width=85%}
+
+See [Stations](stations.qmd) for the interactive version.

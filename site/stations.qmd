@@ -1,0 +1,32 @@
+---
+title: "Stations near the farm"
+---
+
+```{r}
+source("_setup.R")
+sites <- read_fig_csv("station_map_data.csv")
+```
+
+{{< include _sample_warning.qmd >}}
+
+The farm's planned position is marked in red. The 15 km circles are an **estimate** of
+detection range on open terrain; real range depends on the tag, antenna height and
+terrain, and will be measured in a range test after installation.
+
+```{r}
+iframe("figures/station_map.html", 600)
+```
+
+## Sites within 150 km
+
+```{r}
+sites %>%
+  transmute(Station = station, Status = status, `Distance (km)` = round(dist_km),
+            Deployments = n_deployments, `First active` = substr(first_active, 1, 10),
+            `Last active` = ifelse(is.na(last_active) | last_active == "", "", substr(last_active, 1, 10))) %>%
+  arrange(Status, `Distance (km)`) %>%
+  kable()
+```
+
+"Active" means the deployment has not been closed on motus.org, which is the best
+available signal that a station is still running.

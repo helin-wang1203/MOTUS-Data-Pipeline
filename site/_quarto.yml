@@ -1,0 +1,42 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - figures/
+
+website:
+  title: "Dartmouth Organic Farm Motus Station"
+  description: "Data from the Motus wildlife-tracking receiver at the Dartmouth Organic Farm, Hanover NH"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: stations.qmd
+        text: Stations
+      - href: tracks.qmd
+        text: Tracks
+      - href: activity.qmd
+        text: Activity
+      - href: flybys.qmd
+        text: Flybys
+      - href: health.qmd
+        text: Station health
+      - href: methods.qmd
+        text: Methods
+  page-footer:
+    left: "ENGS 89/190 capstone, Dartmouth College, 2026–27. All times UTC unless labelled."
+    right: "Data: motus.org. Built with Quarto."
+
+format:
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 2
+    fig-align: center
+    code-fold: true
+    code-tools: false
+
+execute:
+  echo: false
+  warning: false
+  message: false

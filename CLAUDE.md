@@ -66,6 +66,9 @@ Do not reimplement stages 1–4. Build on them.
 │   └── test_antenna_health.R # simulated-fault tests for antenna_health.R
 ├── docs/
 │   └── interface.md          # interface control document (boundaries, units, port map, health)
+├── site/                     # Quarto website: one page per view, reads output/figures only
+│   ├── _quarto.yml, *.qmd    # pages embed figures the views wrote; no recomputation
+│   └── build.sh              # run views, copy figures, quarto render → site/_site (gitignored)
 ├── data/                     # downloaded .motus files — gitignored
 └── output/                   # generated tables and figures — gitignored
 ```
@@ -155,6 +158,10 @@ install.packages(c("dplyr", "lubridate", "arrow", "ggplot2", "sf", "leaflet", "h
 Python 3.11+ for `python/`. Standard library only so far, so no virtual environment is
 needed; if a dependency is ever added, use `.venv/` (gitignored).
 
+Quarto 1.11+ for `site/` (`brew install --cask quarto`, or unpack the macOS tarball into
+`~/opt/quarto` and link `bin/quarto` onto the PATH if you cannot sudo), plus the R
+packages `knitr` and `rmarkdown` for the R chunks in the pages.
+
 **Motus login.** `R/clean_motus.R` reads `MOTUS_USER` and `MOTUS_PASSWORD` from the
 environment (the same names the `motus` package uses). For project 176 they default to
 the public sample login, so the sample run needs no setup. For the farm receiver, put
@@ -174,6 +181,7 @@ Rscript R/views/flyby.R        # best flyby + grid of candidates → output/figu
 Rscript R/views/track_map.R    # one tag's track (png+html) + overview → output/figures/track_*
 Rscript R/views/activity_calendar.R  # date × hour heatmap + daily totals → output/figures/activity_*
 Rscript R/views/antenna_health.R     # pulses/hour per antenna, real + simulated → output/figures/antenna_health*
+site/build.sh                  # all views + quarto render → site/_site/index.html (--pipeline to re-download first)
 ```
 
 Views read only `output/*.rds`. Each has its own configuration block at the top (for
@@ -237,7 +245,12 @@ around it downstream.
    stdlib only. Line formats follow `docs/interface.md` §2.2 and still need checking
    against a real file from the CTT image (the `T` and `C` line fields especially).
    Range-test analysis itself is not written yet; the parser gives it `pulses.csv`.
-10. **Public "this month at the farm" page**, last, once real farm data exists.
+10. **Quarto site** — built 2026-11-05 (`site/`): Home, Stations, Tracks (with a tag picker),
+    Activity, Flybys, Station health, Methods. Every page carries the sample-data warning
+    (`site/_sample_warning.qmd`); remove it only when the figures come from the farm.
+    Not published anywhere yet; `site/_site/` is local. Hosting is an open decision.
+11. **Public "this month at the farm" page**, last, once real farm data exists. Becomes a
+    page on the Quarto site.
 
 ## Success metrics for this repo
 

@@ -1,0 +1,37 @@
+---
+title: "Tracks"
+---
+
+```{r}
+source("_setup.R")
+tags <- read_fig_csv("track_tags.csv") %>% filter(n_stations >= 2) %>% arrange(desc(n_stations), desc(track_km))
+```
+
+{{< include _sample_warning.qmd >}}
+
+A **stop** is a run of detections at one station. Lines join a tag's stops in time
+order; they are straight lines between receivers, not flight paths. Points are coloured
+by arrival date and sized by how long the bird stayed.
+
+## Every tag seen at two or more stations
+
+![](figures/track_overview.png)
+
+## One tag at a time
+
+```{r}
+#| output: asis
+opts <- sprintf('<option value="figures/track_tag%d.html">%d %s — %d stations, %s to %s, ~%s km</option>',
+                tags$motusTagID, tags$motusTagID, tags$species, tags$n_stations,
+                substr(tags$first, 1, 10), substr(tags$last, 1, 10), format(tags$track_km, big.mark = ","))
+cat('<p><label for="tagpick"><b>Tag:</b></label> <select id="tagpick" onchange="document.getElementById(\'trackframe\').src=this.value" style="max-width:100%">',
+    paste(opts, collapse = "\n"), '</select></p>',
+    sprintf('<iframe id="trackframe" src="figures/track_tag%d.html" style="width:100%%;height:600px;border:1px solid #ddd;border-radius:4px"></iframe>',
+            tags$motusTagID[1]), sep = "\n")
+```
+
+```{r}
+tags %>% transmute(Tag = motusTagID, Species = species, Stops = n_stops, Stations = n_stations,
+                   First = substr(first, 1, 10), Last = substr(last, 1, 10), `Track (km)` = track_km) %>%
+  kable()
+```
